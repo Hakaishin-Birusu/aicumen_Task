@@ -1,0 +1,1 @@
+## Go-binding of smart contract to extend the smart contract interaction from golang (, extended feature only if phase1 of task completed in time)

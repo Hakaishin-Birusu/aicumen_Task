@@ -1,0 +1,1 @@
+## Smart contract Flattened in single contract , provids ease in deployment and verifying smart contracts in any blockchain block explorer  (like , etherscan)

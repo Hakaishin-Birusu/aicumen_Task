@@ -1,0 +1,1 @@
+## Smart contract here are individually kept for ease of future maintainance and updation
