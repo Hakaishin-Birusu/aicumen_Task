@@ -6,3 +6,25 @@ Problem Statement: Design a contract which would allow below functions to be exe
 2)Maintain a ledger who sent which ERC20 token and how much amount in the contract for reconciliation later.
 3)Emit out an event for every incoming and outgoing transaction.
 4)Refrain user from withdrawing the tokens he deposited manually.
+
+
+# Contract Deployment information 
+NOTE : deployment nework is Ethereum TestNet(Kovan)
+
+```
+USDT contract address :
+USDT EtherScan Verified :
+EtherScan verification link :
+```
+
+```
+INRT contract address :
+INRT EtherScan Verified :
+INRT verification link :
+```
+
+```
+AcuConverter contract address :
+AcuConverter EtherScan Verified :
+AcuCOnverter verification link :
+```

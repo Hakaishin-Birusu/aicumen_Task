@@ -14,15 +14,18 @@ contract INRToken is ERC20 {
     uint8 private _decimals;
 
     /**
-    *  Note : everything can be passed as parmeter (and same contract can be used for deploying USDT and INRT can be use ) ,
+    * Note : everything can be passed as parmeter (and same contract can be used for deploying USDT and INRT can be use ) ,
     * but for task understanidng and simplicity i have hardcoded gthe values here
     * Here , _t is the address of acuConverter
+    * NOTE 2: 2 point decimal precision will leverage us to carry out any token related transaction in cents/paise , 
+    * in the same way where ether transaction deals with wei (18 point decimal)
+    * We have implemanted fixed supply token erc20 standard and , minitng only 10000 INR tokens or 1000000 paise tokens 
     */
     constructor(address _t) public payable {
       _name = "INRToken";
       _symbol = "INRT";
-      _decimals = 18;
-      uint256 totalSupply = 1000000000000000000;
+      _decimals = 2;
+      uint256 totalSupply = 1000000;
       // Since its a fixed supply ERC token , all the tokens are minted to contract deployer
       _mint(msg.sender, totalSupply);
       setEntity = _t;
