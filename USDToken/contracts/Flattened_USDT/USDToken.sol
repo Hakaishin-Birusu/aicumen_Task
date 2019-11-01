@@ -1,5 +1,5 @@
 
-// File: contracts/non_flattened/IERC.sol
+// File: contracts/non_flattened_Contract/IERC.sol
 
 pragma solidity ^0.5.0;
 
@@ -15,12 +15,14 @@ interface IERC20 {
 
     function transfer(address recipient, uint256 amount) external returns (bool);
 
+    function transferFrom(address sender ,address recipient, uint256 amount) external returns (bool);
+
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// File: contracts/non_flattened/SafeMath.sol
+// File: contracts/non_flattened_Contract/SafeMath.sol
 
 pragma solidity ^0.5.0;
 
@@ -119,7 +121,7 @@ library SafeMath {
     }
 }
 
-// File: contracts/non_flattened/ERC20.sol
+// File: contracts/non_flattened_Contract/ERC20.sol
 
 pragma solidity ^0.5.0;
 
@@ -136,6 +138,16 @@ contract ERC20 is IERC20 {
     mapping (address => mapping (address => uint256)) private _allowances;
 
     uint256 private _totalSupply;
+    address setEntity;
+
+    /**
+     * @dev creating modifier for giving access to modules to set entity only
+     * where set entity is contractaddress of AcuConverter
+     */
+    modifier OnlySetEntity() {
+        require(msg.sender == setEntity , "Authorization failed, not set entity");
+        _;
+    } 
 
     /**
      * @dev retunrs total number of tokens.
@@ -156,6 +168,15 @@ contract ERC20 is IERC20 {
      */
     function transfer(address recipient, uint256 amount) public returns (bool) {
         _transfer(msg.sender, recipient, amount);
+        return true;
+    }
+
+    /**
+     * @dev defining explicit arguments for transferring tokens
+     * as security mesure only set entities can carry out this method
+     */
+     function transferFrom(address sender ,address recipient, uint256 amount) public OnlySetEntity returns (bool) {
+        _transfer(sender, recipient, amount);
         return true;
     }
 
@@ -190,32 +211,33 @@ contract ERC20 is IERC20 {
 
 }
 
-// File: contracts/non_flattened/INRToken.sol
+// File: contracts/non_flattened_Contract/USDToken.sol
 
 pragma solidity ^0.5.0;
 
-// Instead of manual storing of ERC20contracts we could have used open-zepplin git import link but since we wanted to define only needed functions
-// thats why we stoed it locally and defined as per need
 /**
- * @title INRToken
+ * @title USDToken
  * @author Sagar Chaurasia
  */
-contract INRToken is ERC20 {
+contract USDToken is ERC20 {
 
     string private _name;
     string private _symbol;
     uint8 private _decimals;
 
-    /**
+/**
     *  Note : everything can be passed as parmeter (and same contract can be used for deploying USDT and INRT can be use ) ,
     * but for task understanidng and simplicity i have hardcoded gthe values here
+    * Here , _t is the address of acuConverter
     */
-    constructor() public payable {
-      _name = "INRToken";
-      _symbol = "INRT";
+    constructor(address _t) public payable {
+      _name = "USDToken";
+      _symbol = "USDT";
       _decimals = 18;
       uint256 totalSupply = 1000000000000000000;
+
       _mint(msg.sender, totalSupply);
+      setEntity = _t;
 
     }
 
@@ -226,6 +248,8 @@ contract INRToken is ERC20 {
     function burn(address burnFrom,  uint256 value) public {
       _burn(burnFrom, value);
     }
+
+    // optional functions from ERC20 stardard
 
     /**
      * @return the name of the token.

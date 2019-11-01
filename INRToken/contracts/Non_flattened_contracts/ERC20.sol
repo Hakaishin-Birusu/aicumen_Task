@@ -14,6 +14,16 @@ contract ERC20 is IERC20 {
     mapping (address => mapping (address => uint256)) private _allowances;
 
     uint256 private _totalSupply;
+    address setEntity;
+
+    /**
+     * @dev creating modifier for giving access to modules to set entity only
+     * where set entity is contractaddress of AcuConverter
+     */
+    modifier OnlySetEntity() {
+        require(msg.sender == setEntity , "Authorization failed, not set entity");
+        _;
+    } 
 
     /**
      * @dev retunrs total number of tokens.
@@ -34,6 +44,15 @@ contract ERC20 is IERC20 {
      */
     function transfer(address recipient, uint256 amount) public returns (bool) {
         _transfer(msg.sender, recipient, amount);
+        return true;
+    }
+
+    /**
+     * @dev defining explicit arguments for transferring tokens
+     * as security mesure only set entities can carry out this method
+     */
+     function transferFrom(address sender ,address recipient, uint256 amount) public OnlySetEntity returns (bool) {
+        _transfer(sender, recipient, amount);
         return true;
     }
 

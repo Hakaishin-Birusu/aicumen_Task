@@ -14,14 +14,16 @@ contract USDToken is ERC20 {
 /**
     *  Note : everything can be passed as parmeter (and same contract can be used for deploying USDT and INRT can be use ) ,
     * but for task understanidng and simplicity i have hardcoded gthe values here
+    * Here , _t is the address of acuConverter
     */
-    constructor() public payable {
+    constructor(address _t) public payable {
       _name = "USDToken";
       _symbol = "USDT";
       _decimals = 18;
       uint256 totalSupply = 1000000000000000000;
 
       _mint(msg.sender, totalSupply);
+      setEntity = _t;
 
     }
 
