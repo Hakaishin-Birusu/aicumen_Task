@@ -7,24 +7,24 @@ Problem Statement: Design a contract which would allow below functions to be exe
 3)Emit out an event for every incoming and outgoing transaction.
 4)Refrain user from withdrawing the tokens he deposited manually.
 
+# contract deployment address  (providng info for analysis , since deployment address acts as Owner address , and modifier only recognize this address , as the part of added security)
+account address :
+ssed phrase :
 
 # Contract Deployment information 
 NOTE : deployment nework is Ethereum TestNet(Kovan)
 
 ```
 USDT contract address :
-USDT EtherScan Verified :
-EtherScan verification link :
+can be added in metamask with correct balance reflect : YES
 ```
 
 ```
-INRT contract address :
-INRT EtherScan Verified :
-INRT verification link :
+INRT contract address :0x618BE2ede4A0Bb4240547a58BCE8345a4AB52422
+can be added in metamask with correct balance reflect : YES
 ```
 
 ```
-AcuConverter contract address :
-AcuConverter EtherScan Verified :
-AcuCOnverter verification link :
+AcuConverter contract address : 0x07dE850ea943961a6aB57220B8721D1cFc2dEdd3
+ 
 ```
