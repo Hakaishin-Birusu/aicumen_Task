@@ -7,11 +7,11 @@ Problem Statement: Design a contract which would allow below functions to be exe
 3)Emit out an event for every incoming and outgoing transaction.
 4)Refrain user from withdrawing the tokens he deposited manually.
 
-# contract deployment address  (providng info for analysis , since deployment address acts as Owner address , and modifier only recognize this address , as the part of added security)
-account address :
-ssed phrase :
+## contract deployment address  (providng info for analysis , since deployment address acts as Owner address , and modifier only recognize this address , as the part of added security)
+account address : 0x03eC6F6d53E09209BcAb7C05e7C5489c3A8cD7ae
+seed phrase : "general spoon reason inmate earth scheme evoke topic matter click razor snake"
 
-# Contract Deployment information 
+## Contract Deployment information 
 NOTE : deployment nework is Ethereum TestNet(Kovan)
 
 ```
