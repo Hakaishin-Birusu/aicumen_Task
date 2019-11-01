@@ -117,9 +117,11 @@ contract AcuConverter is usingProvable {
   /**  
  * @dev method that handles transfer of ERC20 tokens to other address and calls the update function for further compution 
  * and automatic resending of tokens via callback function
- * symbol defines the type of currency you are sending in contract 
+ * symbol defines the type of currency you are sending in contract
+ * IMPORTANT => atleast 1 usdT or INRT should be send , And Amount is in CENT/PAISE 
  */
-  function applyForExchange(tokenSymbol symbol_ , uint256 amount_) public {  
+  function applyForExchange(tokenSymbol symbol_ , uint256 amount_) public { 
+    require(amount_ >= 100 , "atleast 1 USDT/INRT (100 cents/paise)should be send"); 
     string memory symbol;
     string memory alterSymbol;
     uint256 queryCode;
@@ -198,28 +200,41 @@ contract AcuConverter is usingProvable {
 
 /**
 * @dev call back function is called after the oraclize has worked and reverted with result
+ * logic used for conversion
+   * since fetched resulted from oraclize is in string format and is for 1 USD to INR or 1 INR to USD
+   * 1) convert string to int type
+   * 2) using 2 deciml precision to convert usd/inr to eqivalent cent/paise
+   * REMEMBER , though the oraclize result is converted to paise/cents but still it is 1 usd/inr equivalent 
+   * 3) now calculating actual amount to send
+   * since amount user transferred to contract was in cent/usd
+   * a) Divide the amount send by user by 100 to get cents/paise equivalent to usd/inr
+   * b) now multiply the above resultant to orcalize per uint result to get the correct amount to send 
+   * NOTE : FOr better understanding , check the mathematical example in file ""
+  
 */
  function __callback(bytes32 _myid,string memory _result) public {
    string memory symbol = inTransitionInfo[_myid].token_;
-   address from = inTransitionInfo[_myid].from_;
-   address to = inTransitionInfo[_myid].to_; //since sender of the transaction is now the recievr of alternative currency
-   uint256 amount = inTransitionInfo[_myid].amount_ * _result;
+   address from_ = inTransitionInfo[_myid].from_;
+   address to = inTransitionInfo[_myid].to_; 
+
+   uint256 unitPrice = parseInt(_result, 2); // converting oraclize result to int , and in cents/paise
+   uint256 amount = (inTransitionInfo[_myid].amount_ * unitPrice)/100;
    address contract_ = tokens[symbol]; 
    ERC20Interface = ERC20(contract_);
-   uint256 myBal = ERC20Interface.balanceOf(from);
+   uint256 myBal = ERC20Interface.balanceOf(from_);
     if(amount > myBal){
-      emit TransferFailed(symbol,from,to,amount);
+      emit TransferFailed(symbol,from_,to,amount);
       revert("contract does not have sufficient balance");
     }
-    ERC20Interface.transferFrom(from,to, amount); 
+    ERC20Interface.transferFrom(from_,to, amount); 
     Transfer memory transferInfo; 
       transferInfo.token_ = symbol;
-      transferInfo.from_ = from;
+      transferInfo.from_ = from_;
       transferInfo.to_ = to;
       transferInfo.amount_ = amount;
       allOutTransactions[to].push(transferInfo);
     
-    emit TransferSuccessful(symbol, from, to, amount);
+    emit TransferSuccessful(symbol, from_, to, amount);
   }
   
  }
