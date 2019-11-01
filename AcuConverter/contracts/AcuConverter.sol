@@ -1,182 +1,228 @@
 pragma solidity ^0.5.0; 
   
- /**
-  @author : sagar chaurasia
-  @dev ProjectX => version: BETA (aicumen technologies specific)
-  */ 
-import "./ERC20.sol";
-
-// Note : oraclize is called provable now
-import "github.com/provable-things/ethereum-api/provableAPI.sol";  
-
-contract AcuConverter is usingProvable {  
-  
-  string public priceETHXBT;
-
-    event LogNewProvableQuery(string description);
- /**  
-  * @dev Details of each transfer 
-  */
-  struct Transfer {  
-  address contract_;  
-  address to_;  
-  uint amount_;  
-  bool failed_;  
-  }  
+/**
+ * @author : sagar chaurasia
+ * @dev ProjectX => version: BETA (aicumen technologies specific)
+ */ 
+ import "./ERC20.sol";
 
 /**
- *@dev modifier to restrict the access of sensitive functions to contract owner only
+* Note : oraclize is called "provable" now
+*/ 
+ import "github.com/provable-things/ethereum-api/provableAPI.sol";  
+
+contract AcuConverter is usingProvable { 
+
+/**
+ * @dev declaring global variables
+ * instantiation of erc20 implemantation
+ */
+  address public owner; 
+  address public ContractAddress; 
+  uint256 public ExchangeTime;  
+  ERC20 private ERC20Interface; 
+
+/**
+ * @dev modifier to restrict the access of sensitive functions to contract owner only
  */
   modifier onlyOwner() {
     require(msg.sender == owner ,"Authorization failed");
     _;
-  }
+  }  
 
-  /**  
- * @dev a mapping from transaction ID's to the sender address 
+/**
+ * @dev defining enum for tokens , for tracking
+ * defining enum to prevent use of memory variables , since they are expensive in terms of gas 
+ */  
+  enum tokenSymbol {USDT, INRT}
+
+/**  
+ * @dev Defining structs 
+ */
+  struct Transfer {
+  string token_;
+  address from_;  
+  address to_;  
+  uint amount_;   
+  }  
+
+/**  
+ * @dev defining mappings
+ * where allInTransactions , stores all the transactions in which user sends token to contract
+ * and allOutTransactions , stores info regarding , user getting alternative tokens from contract
+ * intransactionInfo , stores the information for IN-STATE transaction mapped with query id , to differentiate several transaction instatiation state info, for later  reconciliation in callback
  */ 
-
- mapping(address => uint[]) public transactionIndexesToSender;  
-  
-  
-  /**  
- * @dev a list of all transfers successful or unsuccessful 
- * ExchangeTime is the the amount of time in which automatic converion of tokens is done and send
- */  
- Transfer[] public transactions;  
-  
-  address public owner;  
-
-  uint256 public ExchangeTime;
-  
-  /**  
- * @dev list of all supported tokens for transfer 
- * @param string token symbol 
- * @param address contract address of token 
- */  
-  mapping(string => address) public tokens;  
-  
-  ERC20 private ERC20Interface;  
+  mapping(address => Transfer[]) public allInTransactions;
+  mapping(address => Transfer[]) public allOutTransactions;
+  mapping(bytes32 => Transfer) internal inTransitionInfo; 
+  mapping(string => address) public tokens;
   
 /**  
- * @dev Event to notify if transfer successful or failed 
+ * @dev Defining various events thats inpacts on blockchain on their execution
  */ 
-  event TransferSuccessful(address indexed from_, address indexed to_, uint256 amount_);  
-
-  //failing event can be added once the security check is added at the time of transfer
-  //event TransferFailed(address indexed from_, address indexed to_, uint256 amount_);  
+  event TransferSuccessful(string token, address indexed from_, address indexed to_, uint256 amount_);  
+  event TransferFailed(string token,address indexed from_, address indexed to_, uint256 amount_);  
+  event LogNewProvableQuery(string description);
+  event TokenAdded(string tokenName);
+  event TokenRemoved(string tokenName);
   
+/**
+ * @dev constructor for defining initial values of global variables
+ * Note :  keeping exchange time for 60 secs in starting (quick test purpose) , but can be changed later
+ */
   constructor() public {  
-  owner = msg.sender;
-  // note we are  keeping exchange time for 60 secs in starting (quick test purpose) , but can be changed later  
-  ExchangeTime = 60;
+    owner = msg.sender;
+    ContractAddress = address(this);
+    ExchangeTime = 60;
+ }  
+
+
+/**  
+ * @dev add address of supported tokens Smart contracts 
+ */  
+  function addNewToken(tokenSymbol symbol_, address address_) public onlyOwner  returns (bool) {  
+    string memory symbol;
+    if (tokenSymbol(symbol_)==tokenSymbol.USDT)
+    {symbol= "USDT";}
+    else if (tokenSymbol(symbol_)==tokenSymbol.INRT)
+    {symbol = "INRT";}
+    else {revert("Symbol Not Found");}
+    tokens[symbol] = address_;  
+    emit TokenAdded(symbol);
+    return true;  
  }  
 
 /**  
- * @dev add address of token to list of supported tokens using 
- * token symbol as identifier in mapping 
+ * @dev remove address of token that are no more supported
  */  
- function addNewToken(string memory symbol_, address address_) public  returns (bool) {  
-  tokens[symbol_] = address_;  
-  return true;  
- }  
-
-  /**  
-  * @dev remove address of token we no more support
-  */  
- function removeToken(string memory symbol_) public  returns (bool) {  
-  delete(tokens[symbol_]);  
-  return true;  
+  function removeToken(tokenSymbol symbol_) public onlyOwner returns (bool) {
+    string memory symbol;
+    if (tokenSymbol(symbol_)==tokenSymbol.USDT)
+    {symbol= "USDT";}
+    else if (tokenSymbol(symbol_)==tokenSymbol.INRT)
+    {symbol = "INRT";}
+    else {revert("Symbol Not Found");}
+    delete(tokens[symbol]);  
+    emit TokenRemoved(symbol);
+    return true;  
   }
 
+/**  
+ * @dev method for setting the exchange time 
+ */
+  function setExchangeTime(uint256 time) public onlyOwner returns(bool) {
+    ExchangeTime = time;
+    return true;
+ }
+
   /**  
- * @dev method that handles transfer of ERC20 tokens to other address
+ * @dev method that handles transfer of ERC20 tokens to other address and calls the update function for further compution 
+ * and automatic resending of tokens via callback function
  * symbol defines the type of currency you are sending in contract 
  */
+  function applyForExchange(tokenSymbol symbol_ , uint256 amount_) public {  
+    string memory symbol;
+    string memory alterSymbol;
+    uint256 queryCode;
 
- function applyForExchange(string memory symbol_, uint256 amount_) public {  
- 
-   // TODO :security check 1) add the balance revert call and retireve the current balance and add if & revert back , if failing 
-  //2) check if legit symbol or not , if not =>revert
-  uint256 code ;
-  if (symbol_ == "USDT")
-  {code=0;} else {code=1;}
-  address contract_ = tokens[symbol_];  
-  address from_ = msg.sender;  
-  address to_ = address(this);
-  
-  ERC20Interface = ERC20(contract_);  
-  
-  // TODO , manage the ledger in more sensible and task specific way
-  uint256 transactionId = transactions.push(  
-  Transfer({  
-  contract_:  contract_,  
-            to_: to_,  
-            amount_: amount_,  
-            failed_: true  
-  })  
- );  
-  transactionIndexesToSender[from_].push(transactionId - 1);  
+    if (tokenSymbol(symbol_)==tokenSymbol.USDT){
+      symbol= "USDT";
+      queryCode = 0;
+      alterSymbol = "INRT";
+      }
+    else if (tokenSymbol(symbol_)==tokenSymbol.INRT){
+      symbol = "INRT";
+      queryCode =1;
+      alterSymbol = "USDT";
+      }
+    else {
+      revert("Symbol Not Found");
+      }
 
-  ERC20Interface.transfer( to_, amount_);  
-  
-  transactions[transactionId - 1].failed_ = false;  
-  
-  emit TransferSuccessful(from_, to_, amount_);  
-  update(code);
+    address contract_ = tokens[symbol];  
+    address from_ = msg.sender;  
+    address to_ = address(this);
+    
+    ERC20Interface = ERC20(contract_); 
+    uint256 myBal = ERC20Interface.balanceOf(from_);
+
+    if(amount_ > myBal){
+      emit TransferFailed(symbol,from_,to_,amount_);
+      revert("insufficient balance");
+    }
+    
+    ERC20Interface.transfer(to_, amount_); 
+    Transfer memory transferInfo; 
+      transferInfo.token_ = symbol;
+      transferInfo.from_ = from_;
+      transferInfo.to_ = to_;
+      transferInfo.amount_ = amount_;
+      allInTransactions[from_].push(transferInfo);
+    
+    emit TransferSuccessful(symbol, from_, to_, amount_);  
+
+    update(queryCode,alterSymbol,to_,from_,amount_);
+    //here , altering the values , since we need to send alternative currency to msg.sender , For update function
  }  
-
-  /**  
- * @dev method that can set the exchange time 
- * TODO : only owner can call this function 
- */
- function setExchangeTime(uint256 time) public oinlyOwner returns(bool) {
-   ExchangeTime = time;
-   return true;
- }
 
 
 /**
 * @dev query using oraclize service fetches the current rate of usd/inr pair or vice-versa
 * function needs to be payable since oraclize is paid service
+* using free api for getting concurrent data from internet about current rate of currencies
+* To support multiple transaction at a time , using query id to descriminate between various transactions
 */
- 
-    function update(uint256 queryCode) public payable
+    function update(uint256 queryCode, string memory alternativeSymbol, address newFrom , address newTo, uint256 amount) public payable
     {
+      bytes32 queryId;
+      Transfer memory transferInfo;
+      transferInfo.token_ = alternativeSymbol;
+      transferInfo.from_ = newFrom;
+      transferInfo.to_ = newTo;
+      transferInfo.amount_ = amount;
         if (provable_getPrice("URL") > address(this).balance) {
-            emit LogNewProvableQuery("query was NOT sent, try adding some ETH ");
+            emit LogNewProvableQuery("query was NOT sent, try adding some ETH to the Contract ");
         } else {
           if(queryCode == 0) {
-
             emit LogNewProvableQuery("query was sent, wating for exchange time");
-            // using free api for getting concurrent data from internet about curent rate of currencies
-            provable_query(ExchangeTime, "URL", "json(https://free.currconv.com/api/v7/convert?q=USD_INR&compact=ultra&apiKey=969ee6cd3dfec2260f72).USD_INR");
+            queryId = provable_query(ExchangeTime, "URL", "json(https://free.currconv.com/api/v7/convert?q=USD_INR&compact=ultra&apiKey=969ee6cd3dfec2260f72).USD_INR");
+            inTransitionInfo[queryId]= transferInfo;
           }
           else if(queryCode == 1) {
            
             emit LogNewProvableQuery("query was sent, wating for exchange time");
-            // using free api for getting concurrent data from internet about curent rate of currencies
-            provable_query(ExchangeTime, "URL", "json(https://free.currconv.com/api/v7/convert?q=INR_USD&compact=ultra&apiKey=969ee6cd3dfec2260f72).INR_USD"); 
+            queryId = provable_query(ExchangeTime, "URL", "json(https://free.currconv.com/api/v7/convert?q=INR_USD&compact=ultra&apiKey=969ee6cd3dfec2260f72).INR_USD"); 
+            inTransitionInfo[queryId]= transferInfo;
           }
         }
     }
 
-    /**
+/**
 * @dev call back function is called after the oraclize has worked and reverted with result
-* NOTE : COMPLETLY REWORK ON CALLBACK FUNCTION , currently multiple trnasaction from existing user not supported and 
-* and maintain a ledger entry for this "OUT" transaction also
 */
- function __callback(bytes32 _myid,string memory _result,bytes memory _proof) public {
-        require(msg.sender == provable_cbAddress());
-  ERC20Interface.transfer( msg.sender, _result);
-
+ function __callback(bytes32 _myid,string memory _result) public {
+   string memory symbol = inTransitionInfo[_myid].token_;
+   address from = inTransitionInfo[_myid].from_;
+   address to = inTransitionInfo[_myid].to_; //since sender of the transaction is now the recievr of alternative currency
+   uint256 amount = inTransitionInfo[_myid].amount_ * _result;
+   address contract_ = tokens[symbol]; 
+   ERC20Interface = ERC20(contract_);
+   uint256 myBal = ERC20Interface.balanceOf(from);
+    if(amount > myBal){
+      emit TransferFailed(symbol,from,to,amount);
+      revert("contract does not have sufficient balance");
     }
-
- 
+    ERC20Interface.transferFrom(from,to, amount); 
+    Transfer memory transferInfo; 
+      transferInfo.token_ = symbol;
+      transferInfo.from_ = from;
+      transferInfo.to_ = to;
+      transferInfo.amount_ = amount;
+      allOutTransactions[to].push(transferInfo);
+    
+    emit TransferSuccessful(symbol, from, to, amount);
+  }
+  
  }
 
 
- //query returns the bytes32 value , i.e, id , id can be used as mapping 
- 
-  
-  
