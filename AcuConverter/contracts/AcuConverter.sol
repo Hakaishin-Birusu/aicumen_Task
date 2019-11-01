@@ -32,7 +32,6 @@ contract AcuConverter is usingProvable {
 
 /**
  * @dev defining enum for tokens , for tracking
- * defining enum to prevent use of memory variables , since they are expensive in terms of gas 
  */  
   enum tokenSymbol {USDT, INRT}
 
