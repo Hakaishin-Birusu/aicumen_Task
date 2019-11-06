@@ -8,14 +8,15 @@ Problem Statement: Design a contract which would allow below functions to be exe
 4)Refrain user from withdrawing the tokens he deposited manually.
 
 ## contract deployment address  (providng info for analysis , since deployment address acts as Owner address , and modifier only recognize this address , as the part of added security)
+```
 account address : 0x03eC6F6d53E09209BcAb7C05e7C5489c3A8cD7ae
 seed phrase : "general spoon reason inmate earth scheme evoke topic matter click razor snake"
-
+```
 ## Contract Deployment information 
 NOTE : deployment nework is Ethereum TestNet(Kovan)
 
 ```
-USDT contract address :
+USDT contract address : 0xb84094182bC85B9618aF7Df5f51f2acD2cDf3712
 can be added in metamask with correct balance reflect : YES
 ```
 
