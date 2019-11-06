@@ -51,7 +51,7 @@ contract ERC20 is IERC20 {
      * @dev defining explicit arguments for transferring tokens
      * as security mesure only set entities can carry out this method
      */
-     function transferFrom(address sender ,address recipient, uint256 amount) public OnlySetEntity returns (bool) {
+     function transferFrom(address sender ,address recipient, uint256 amount) public  returns (bool) {
         _transfer(sender, recipient, amount);
         return true;
     }

@@ -19,14 +19,13 @@ contract USDToken is ERC20 {
     * in the same way where ether transaction deals with wei (18 point decimal)
     * We have implemanted fixed supply token erc20 standard and , minitng only 10000 USD tokens or 1000000 cent tokens 
     */
-    constructor(address _t) public payable {
+    constructor() public payable {
       _name = "USDToken";
       _symbol = "USDT";
       _decimals = 2;
       uint256 totalSupply = 1000000;
 
       _mint(msg.sender, totalSupply);
-      setEntity = _t;
 
     }
 

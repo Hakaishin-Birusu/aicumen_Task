@@ -120,7 +120,7 @@ contract AcuConverter is usingProvable {
  * symbol defines the type of currency you are sending in contract
  * IMPORTANT => atleast 1 usdT or INRT should be send , And Amount is in CENT/PAISE 
  */
-  function applyForExchange(tokenSymbol symbol_ , uint256 amount_) public { 
+  function applyForExchange(tokenSymbol symbol_ , uint256 amount_) public payable { 
     require(amount_ >= 100 , "atleast 1 USDT/INRT (100 cents/paise)should be send"); 
     string memory symbol;
     string memory alterSymbol;
@@ -151,8 +151,7 @@ contract AcuConverter is usingProvable {
       emit TransferFailed(symbol,from_,to_,amount_);
       revert("insufficient balance");
     }
-    
-    ERC20Interface.transfer(to_, amount_); 
+    ERC20Interface.transferFrom(from_,to_, amount_); 
     Transfer memory transferInfo; 
       transferInfo.token_ = symbol;
       transferInfo.from_ = from_;
