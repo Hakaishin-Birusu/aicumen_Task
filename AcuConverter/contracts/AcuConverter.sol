@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
   
 /**
  * @author : sagar chaurasia
- * @dev ProjectX => version: BETA (aicumen technologies specific)
+ * @dev ProjectX => version: BETA (aicumen)
  */ 
  import "./ERC20.sol";
 
